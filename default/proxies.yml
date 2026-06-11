@@ -1,0 +1,53 @@
+# External API declaration. At install time, admins see exactly which
+# endpoints the app will reach.
+#
+# ai.cribl.cloud — Cribl Copilot AI. Used by:
+#   - the Search Converter   (/saved/import)      — translate vendor queries → KQL
+#   - the Dashboard Converter (/dashboards/import) — per-panel KQL polish
+#
+# Both flows POST to the unified `/api/chat` Copilot endpoint and pass an
+# `x-cribl-surface` header naming the calling app. The platform's proxy
+# enforces this allowlist BEFORE forwarding upstream — any path/header not
+# listed here is rejected with `Path is not allowed` (403), not by the AI
+# server itself. That's why this file must stay in sync with whatever URL +
+# headers `lib/searchMigration.ts` actually sends.
+#
+# Surfaces: `cribl-search` (Search KQL assistant) and `cribl-power-tools` (converter fallback).
+#
+# The legacy `/api/kql` path is retained so older viz-lab installs hitting
+# the deprecated endpoint fail cleanly with the upstream 404 rather than
+# being blocked by the proxy.
+ai.cribl.cloud:
+  paths:
+    allowlist:
+      - /api/chat
+      - /api/kql
+  headers:
+    allowlist:
+      - Content-Type
+      - x-cribl-surface
+  timeout: 30000
+
+# ── Remote source connectors (Splunk, etc.) ──────────────────────────────
+#
+# The Dashboard / Search Converter pages can pull saved searches and
+# dashboards directly from a Splunk REST API in "Live" mode. The platform
+# proxy allowlists external hosts by hostname, so each Splunk instance
+# viz-lab should reach must be declared here BEFORE packaging the .tgz.
+# Hostnames must match exactly (no wildcards).
+#
+# Uncomment and edit the block below per-Splunk-host. Repeat for each
+# additional remote source. Users without proxy access can still use the
+# Converter's "Paste responses" fallback — no allowlist entry needed.
+#
+# splunk.acme.com:
+#   paths:
+#     allowlist:
+#       - /services/apps/local
+#       - /services/saved/searches
+#       - /services/data/ui/views
+#   headers:
+#     allowlist:
+#       - Authorization
+#       - Accept
+#   timeout: 30000
